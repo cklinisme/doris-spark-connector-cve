@@ -1,0 +1,9 @@
+{
+  "groupId": "io.github.cklinisme",
+  "artifactId": "spark-doris-connector-spark-3.5",
+  "version": "26.1.0-cve.1",
+  "githubUsername": "cklinisme",
+  "developerName": "cklinisme",
+  "repositoryUrl": "https://github.com/cklinisme/doris-spark-connector-cve",
+  "gpgFingerprint": "BD2E377C0A8960326661167F4CA34BB64B8F436E"
+}

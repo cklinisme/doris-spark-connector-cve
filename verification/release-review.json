@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "sourceFilesReviewed": 375,
+  "jarEntriesReviewed": 27975,
+  "centralBundleSha256": "af1e01e808c1ad615c0ca8c97849e867144f44bb2345dbcaaaa4ec35a9b1caab",
+  "bundleFiles": 24,
+  "publicPublisher": "cklinisme",
+  "privateIdentityFound": false
+}

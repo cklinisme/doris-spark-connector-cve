@@ -1,0 +1,222 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+# Spark Connector for Apache Doris
+
+**本機建置入口：[BUILD.md](BUILD.md)**
+
+**Security fork:** `io.github.cklinisme:spark-doris-connector-spark-3.5:26.1.0-cve.1`
+
+See [PUBLISHING.md](PUBLISHING.md) for publication status and setup, and
+[verification/VERIFICATION.md](verification/VERIFICATION.md) for the exact artifact's checks.
+The namespace is verified; public Central availability must be confirmed before use.
+
+> **Unofficial security fork for Java / Spark 3.5.1 / Scala 2.12.**
+> Start with [SECURITY-FORK.md](SECURITY-FORK.md) for patched dependencies, build commands,
+> verification scope, and local build instructions. The proposed release is `26.1.0-cve.1`.
+> The upstream instructions below describe other Spark variants that this fork has not validated.
+
+[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+[![Join the Doris Community at Slack](https://img.shields.io/badge/chat-slack-brightgreen)](https://join.slack.com/t/apachedoriscommunity/shared_invite/zt-11jb8gesh-7IukzSrdea6mqoG0HB4gZg)
+
+### Spark Doris Connector
+
+More information about compilation and usage, please visit [Spark Doris Connector](https://doris.apache.org/docs/ecosystem/spark-doris-connector)
+
+## License
+
+[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+
+## How to Build
+
+You need to copy customer_env.sh.tpl to customer_env.sh before build and you need to configure it before build.
+```shell
+git clone git@github.com:apache/doris-spark-connector.git
+cd doris-spark-connector/spark-doris-connector
+./build.sh
+```
+
+### QuickStart
+
+1. download and compile Spark Doris Connector from  https://github.com/apache/doris-spark-connector, we suggest compile Spark Doris Connector  by Doris official image。
+
+```bash
+$ docker pull apache/doris:build-env-ldb-toolchain-latest
+```
+
+2. the result of compile jar is like：spark-doris-connector-3.1_2.12-1.0.0-SNAPSHOT.jar
+
+3. download spark for https://spark.apache.org/downloads.html   .if in china there have a good choice of tencent link  https://mirrors.cloud.tencent.com/apache/spark/spark-3.1.2/
+
+```bash
+#download
+wget https://mirrors.cloud.tencent.com/apache/spark/spark-3.1.2/spark-3.1.2-bin-hadoop3.2.tgz
+#decompression
+tar -xzvf spark-3.1.2-bin-hadoop3.2.tgz
+```
+
+4. config Spark environment
+
+```shell
+vim /etc/profile
+export SPARK_HOME=/your_parh/spark-3.1.2-bin-hadoop3.2
+export PATH=$PATH:$SPARK_HOME/bin
+source /etc/profile
+```
+
+5. copy spark-doris-connector-3.1_2.12-1.0.0-SNAPSHOT.jar to spark  jars directory。
+
+```shell
+cp /your_path/spark-doris-connector/target/spark-doris-connector-3.1_2.12-1.0.0-SNAPSHOT.jar  $SPARK_HOME/jars
+```
+
+6. created  doris database and table。
+
+   ```sql
+   create database mongo_doris;
+   use mongo_doris;
+   CREATE TABLE data_sync_test_simple
+    (
+            _id VARCHAR(32) DEFAULT '',
+            id VARCHAR(32) DEFAULT '',
+            user_name VARCHAR(32) DEFAULT '',
+            member_list VARCHAR(32) DEFAULT ''
+    )
+    DUPLICATE KEY(_id)
+    DISTRIBUTED BY HASH(_id) BUCKETS 10
+    PROPERTIES("replication_num" = "1");
+   INSERT INTO data_sync_test_simple VALUES ('1','1','alex','123');
+   ```
+
+   7. Input this coed in spark-shell.
+
+```bash
+import org.apache.doris.spark._
+val dorisSparkRDD = sc.dorisRDD(
+  tableIdentifier = Some("mongo_doris.data_sync_test"),
+  cfg = Some(Map(
+    "doris.fenodes" -> "127.0.0.1:8030",
+    "doris.request.auth.user" -> "root",
+    "doris.request.auth.password" -> ""
+  ))
+)
+dorisSparkRDD.collect()
+```
+
+- mongo_doris:doris database name
+- data_sync_test:doris  table mame.
+- doris.fenodes:doris FE IP:http_port
+- doris.request.auth.user:doris  user name.
+- doris.request.auth.password:doris  password
+
+8. if Spark is Cluster model,upload Jar to HDFS，add doris-spark-connector jar HDFS URL in  spark.yarn.jars.
+
+```bash
+spark.yarn.jars=hdfs:///spark-jars/doris-spark-connector-3.1.2-2.12-1.0.0.jar
+```
+
+Link：https://github.com/apache/doris/discussions/9486
+
+9. in pyspark,input this code in pyspark shell command.
+
+```bash
+dorisSparkDF = spark.read.format("doris")
+.option("doris.table.identifier", "mongo_doris.data_sync_test")
+.option("doris.fenodes", "127.0.0.1:8030")
+.option("user", "root")
+.option("password", "")
+.load()
+# show 5 lines data 
+dorisSparkDF.show(5)
+```
+
+## TLS
+
+The connector supports one-way TLS for Doris HTTP APIs and Stream Load,
+MySQL/JDBC metadata queries, BE Thrift reads, and Arrow Flight SQL reads. TLS is
+disabled by default.
+
+```scala
+spark.read.format("doris")
+  .option("doris.fenodes", "fe.example.com:8040")
+  .option("doris.table.identifier", "database.table")
+  .option("user", "root")
+  .option("password", "")
+  .option("doris.enable.tls", "true")
+  .option("doris.tls.ca-certificate-path", "/etc/doris-tls/ca.pem")
+  .load()
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `doris.enable.tls` | `false` | Enables TLS for all Doris protocols not listed in `doris.tls.excluded-protocols`. |
+| `doris.tls.ca-certificate-path` | empty | Path to a PEM file containing one or more trusted X.509 CA certificates. An empty value uses the JVM or client-library default trust roots. |
+| `doris.tls.skip-hostname-verification` | `false` | Disables hostname verification while retaining CA verification. This mode is not supported by Arrow Flight SQL. |
+| `doris.tls.excluded-protocols` | empty | Comma-separated plaintext exceptions: `http`, `mysql`, `thrift`, and `arrowflight`. |
+
+The connector validates certificate chains and hostnames by default and does not
+modify JVM-global TLS settings. Client certificates and mutual TLS are not
+supported.
+
+The CA file must be available at the same path on the Spark driver and every
+executor. For YARN, distribute it with `--files /local/path/ca.pem#ca.pem` and
+configure `doris.tls.ca-certificate-path=ca.pem`. For Kubernetes, mount the CA
+from a Secret or volume into both driver and executor pods and configure the
+mounted path.
+
+## type convertion for writing to doris using arrow
+|doris|spark|
+|---|---|
+| BOOLEAN | BooleanType |
+| TINYINT | ByteType |
+| SMALLINT | ShortType |
+| INT | IntegerType |
+| BIGINT | LongType |
+| LARGEINT | StringType |
+| FLOAT | FloatType |
+| DOUBLE | DoubleType |
+| DECIMAL(M,D) | DecimalType(M,D) |
+| DATE | DateType |
+| DATETIME | TimestampType |
+| CHAR(L) | StringType |
+| VARCHAR(L) | StringType |
+| STRING | StringType |
+| ARRAY | ARRAY |
+| MAP | MAP |
+| STRUCT | STRUCT |
+
+
+
+## Report issues or submit pull request
+
+If you find any bugs, feel free to file a [GitHub issue](https://github.com/apache/doris/issues) or fix it by submitting a [pull request](https://github.com/apache/doris/pulls).
+
+## Contact Us
+
+Contact us through the following mailing list.
+
+| Name                                                                          | Scope                           |                                                                 |                                                                     |                                                                              |
+|:------------------------------------------------------------------------------|:--------------------------------|:----------------------------------------------------------------|:--------------------------------------------------------------------|:-----------------------------------------------------------------------------|
+| [dev@doris.apache.org](mailto:dev@doris.apache.org)     | Development-related discussions | [Subscribe](mailto:dev-subscribe@doris.apache.org)   | [Unsubscribe](mailto:dev-unsubscribe@doris.apache.org)   | [Archives](https://mail-archives.apache.org/mod_mbox/doris-dev/)   |
+
+## Links
+
+* Doris official site - <https://doris.apache.org>
+* Developer Mailing list - <dev@doris.apache.org>. Mail to <dev-subscribe@doris.apache.org>, follow the reply to subscribe the mail list.
+* Slack channel - [Join the Slack](https://join.slack.com/t/apachedoriscommunity/shared_invite/zt-11jb8gesh-7IukzSrdea6mqoG0HB4gZg)
