@@ -25,7 +25,26 @@
 - CVE-2026-54512 成品回歸測試通過；123 個已識別成分的 OSV 查核為 0 筆。
 - 已建立簽章金鑰，公鑰已送到 `keyserver.ubuntu.com`。
 - 四個發布檔案的簽章已驗證；獨立 Maven 消費端解析成功。
-- **尚待 Central 正式發布及匿名下載確認；目前不能宣稱此座標已可下載。**
+- **已正式發布到 Maven Central，且四個發布檔案均已匿名下載並比對 SHA-256 成功。**
+- 發布日期：2026-09-17（Asia/Taipei）；deployment ID：`c907cc92-aaf2-422f-9e2c-089fde271a0e`。
+- [Maven Central 套件頁](https://central.sonatype.com/artifact/io.github.cklinisme/spark-doris-connector-spark-3.5/26.1.0-cve.1)
+- [公開 Maven 檔案目錄](https://repo.maven.apache.org/maven2/io/github/cklinisme/spark-doris-connector-spark-3.5/26.1.0-cve.1/)
+- 主 JAR SHA-256：`a9879a2454e6ee6fe1538486268bfc8b90ef0cc6d626f36193f8adfd1aedb977`。
+- 原始碼與 `v26.1.0-cve.1` tag 已公開；臨時 GitHub Deploy Key 已移除。
+
+## 使用此版本
+
+移除原本的 `org.apache.doris:spark-doris-connector-spark-3.5`，改用以下依賴：
+
+```xml
+<dependency>
+  <groupId>io.github.cklinisme</groupId>
+  <artifactId>spark-doris-connector-spark-3.5</artifactId>
+  <version>26.1.0-cve.1</version>
+</dependency>
+```
+
+使用 Maven 預設 Central 即可；若公司強制使用內部 Nexus／Artifactory，仍會經過公司的 mirror 與掃描政策。
 
 ## 重建發布包
 
